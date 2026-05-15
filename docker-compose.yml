@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dify
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: dify
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - brainhome
+
+  dify:
+    build:
+      context: ./services/dify_stub
+    container_name: dify
+    restart: unless-stopped
+    env_file:
+      - ./config/dify.env
+    ports:
+      - "100.87.153.12:3001:3000"
+    volumes:
+      - ./data/dify:/app/data
+    depends_on:
+      - postgres
+    networks:
+      - brainhome
+
+  fastapi:
+    image: tiangolo/uvicorn-gunicorn-fastapi:python3.11
+    container_name: fastapi-agent
+    restart: unless-stopped
+    env_file:
+      - ./config/fastapi.env
+    volumes:
+      - ./services/fastapi:/app
+    ports:
+      - "100.87.153.12:8000:80"
+    depends_on:
+      - dify
+    networks:
+      - brainhome
+
+  watcher:
+    build:
+      context: ./services/watcher
+    container_name: watcher
+    restart: unless-stopped
+    env_file:
+      - ./config/watcher.env
+    volumes:
+      - ./data:/watch/data:ro
+      - ./services:/watch/services:ro
+      - ./data/watchdog:/app/logs
+    depends_on:
+      - dify
+    networks:
+      - brainhome
+
+  agent-tools:
+    build:
+      context: ./services/agent-tools
+    container_name: agent-tools
+    restart: unless-stopped
+    env_file:
+      - ./config/agent-tools.env
+    volumes:
+      - ./data/agent-workspace:/workspace
+      - ./data/watchdog:/app/logs
+    ports:
+      - "100.87.153.12:8001:8001"
+    networks:
+      - brainhome
+
+networks:
+  brainhome:
+    driver: bridge

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Brain-Home Mobile</title>
+    <link rel="stylesheet" href="/static/mobile.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <h1>Brain-Home</h1>
+        <p>Chat AI</p>
+      </div>
+      <div class="header-meta">
+        <span id="backendStatus">Connessione...</span>
+        <span class="header-version">v{{version}}</span>
+      </div>
+    </header>
+
+    <div class="chat-window" id="chatWindow" aria-live="polite" aria-label="Chat"></div>
+
+    <div class="status-bar" id="status">Pronto.</div>
+
+    <div class="input-toolbar">
+      <textarea id="question" placeholder="Scrivi la tua domanda..." rows="2" aria-label="Scrivi la tua domanda"></textarea>
+      <button id="sendBtn" type="button" aria-label="Invia">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22" aria-hidden="true">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+    <script src="/static/mobile.js" defer></script>
+  </body>
+</html>

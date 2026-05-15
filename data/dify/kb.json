@@ -1,0 +1,27 @@
+[
+  {
+    "id": "kb-1",
+    "kb": "kb_sistema",
+    "title": "Configurazione iniziale",
+    "text": "Brain-Home è un ecosistema AI modulare che utilizza container Docker, una rete Tailscale e un layer di orchestrazione per Knowledge Base e LLM locali. Questo ambiente serve per sviluppare e testare un assistente IA centrale che coordina dati e inferenza."
+  },
+  {
+    "id": "kb-2",
+    "kb": "kb_sistema",
+    "title": "Funzionamento del sistema",
+    "text": "Il sistema usa un servizio Dify placeholder per caricare la knowledge base e un servizio FastAPI per proxy verso il modello LLM. Le richieste dell'utente vengono analizzate, viene selezionato un documento di contesto, e la risposta viene generata dal modello locale."
+  },
+  {
+    "id": "kb-3",
+    "kb": "kb_sistema",
+    "title": "Knowledge Base multi-tematiche",
+    "text": "Il sistema supporta più KB tematiche: kb_sistema (infrastruttura Docker/Tailscale), kb_frontend (interfaccia mobile, chat UI, FastAPI), kb_ai (LLM, RAG, Ollama, embedding). Il routing automatico seleziona la KB più pertinente in base alle parole chiave della domanda."
+  },
+  {
+    "id": "kb-4",
+    "kb": "kb_sistema",
+    "title": "Caso d'uso: query multi-KB",
+    "text": "Esempio multi-KB: 'Come si collega l'interfaccia mobile al modello AI?' coinvolge sia kb_frontend (interfaccia) sia kb_ai (modello). In questo caso il routing sceglie la KB con più keyword match. Le sessioni memorizzano il contesto delle ultime 3 domande per mantenere la coerenza del dialogo."
+  }
+]
+

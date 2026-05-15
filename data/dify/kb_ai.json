@@ -1,0 +1,26 @@
+[
+  {
+    "id": "ai-1",
+    "kb": "kb_ai",
+    "title": "Integrazione Ollama locale",
+    "text": "Ollama è il provider LLM locale di Brain-Home. Gira sull'host a http://127.0.0.1:11434 ed è accessibile dai container Docker tramite http://host.docker.internal:11434. Il modello attivo è qwen2.5-coder:1.5b-base. L'endpoint usato è POST /v1/completions con parametri model, prompt, max_tokens e temperature."
+  },
+  {
+    "id": "ai-2",
+    "kb": "kb_ai",
+    "title": "Flusso RAG",
+    "text": "Il flusso RAG (Retrieval Augmented Generation) è: 1) ricezione domanda utente, 2) selezione KB per routing keyword, 3) recupero documento più rilevante per overlap parole, 4) costruzione prompt con system prompt + contesto + domanda, 5) chiamata Ollama, 6) restituzione risposta. Il retrieval usa word overlap semplice come baseline."
+  },
+  {
+    "id": "ai-3",
+    "kb": "kb_ai",
+    "title": "System prompt agente",
+    "text": "Il system prompt principale è: 'Sei un assistente IA che risponde in italiano ai requisiti di progetto usando il contesto disponibile.' Può essere personalizzato via variabile d'ambiente SYSTEM_PROMPT nel file config/dify.env. Il prompt è preposto al contesto recuperato dalla KB e alla domanda dell'utente."
+  },
+  {
+    "id": "ai-4",
+    "kb": "kb_ai",
+    "title": "Architettura del servizio dify_stub",
+    "text": "Il servizio dify_stub è un'implementazione Python/FastAPI che sostituisce Dify come orchestratore RAG. Espone GET / (status), POST /query (query con RAG). Supporta routing multi-KB, sessioni utente, e fallback quando Ollama non è disponibile. La KB è caricata da file JSON configurabile via KB_PATH."
+  }
+]

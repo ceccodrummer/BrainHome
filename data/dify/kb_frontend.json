@@ -1,0 +1,26 @@
+[
+  {
+    "id": "fe-1",
+    "kb": "kb_frontend",
+    "title": "Architettura frontend mobile",
+    "text": "Il frontend mobile di Brain-Home è una Single Page Application servita da FastAPI. I file sono separati in templates/index.html (struttura HTML), static/mobile.css (stile) e static/mobile.js (logica). La versione è tracciata come MOBILE_UI_VERSION in main.py e inserita nel template via placeholder {{version}}."
+  },
+  {
+    "id": "fe-2",
+    "kb": "kb_frontend",
+    "title": "Chat stile WhatsApp",
+    "text": "L'interfaccia chat ha un header fisso verde (#0f9d58) in alto, una finestra di chat scrollabile al centro, e una toolbar di input fissa in basso. I messaggi dell'utente appaiono a destra in bolle verdi, quelli dell'IA appaiono a sinistra in bolle grigie."
+  },
+  {
+    "id": "fe-3",
+    "kb": "kb_frontend",
+    "title": "Versioning frontend",
+    "text": "La versione frontend viene incrementata automaticamente con lo script scripts/bump-frontend-version.py che aggiorna il campo MOBILE_UI_VERSION in services/fastapi/main.py. Il git hook .githooks/pre-commit esegue lo script prima di ogni commit quando vengono modificati file frontend."
+  },
+  {
+    "id": "fe-4",
+    "kb": "kb_frontend",
+    "title": "Endpoint FastAPI",
+    "text": "FastAPI espone: GET / e GET /mobile (pagina HTML), GET /health (stato backend con versione), POST /proxy (inoltro query al servizio dify). L'endpoint health restituisce {status, dify_url, version}."
+  }
+]

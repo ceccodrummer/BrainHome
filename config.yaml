@@ -1,0 +1,12 @@
+# LiteLLM configuration file
+# Use a local Ollama runtime in development, or replace with a cloud provider.
+
+lite_llm:
+  provider: "local" # può essere "openai", "gemini", "local"
+  url: "http://127.0.0.1:11434"
+  api_key: "" # non necessario per Ollama locale
+  model: "qwen2.5-coder:1.5b-base" # nome del modello locale da usare con Ollama
+
+# Eventuali impostazioni aggiuntive
+# timeout: 30
+# max_retries: 3

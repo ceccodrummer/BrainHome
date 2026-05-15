@@ -1,0 +1,41 @@
+# Sensitive environment files
+config/*.env
+
+# PostgreSQL data directory (binary files)
+data/postgres/
+
+# Dify sessions (runtime state)
+data/dify/sessions.json
+
+# Whisper models (large binary files)
+data/whisper/
+
+# Watchdog runtime data
+data/watchdog/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.env
+.venv/
+venv/
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime socket/control files
+*.ctl
+*.sock
+*.pid

@@ -1,0 +1,56 @@
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+import httpx
+import os
+
+app = FastAPI()
+app.mount(
+    "/static",
+    StaticFiles(directory=str(Path(__file__).resolve().parent / "static")),
+    name="static",
+)
+
+dify_url = os.getenv("DIFY_URL", "http://dify:3000")
+
+dify_api_key = os.getenv("DIFY_API_KEY", "")
+MOBILE_UI_VERSION = "1.0.5"
+TEMPLATE_PATH = Path(__file__).resolve().parent / "templates" / "index.html"
+
+def mobile_page_html():
+    html = TEMPLATE_PATH.read_text(encoding="utf-8")
+    return html.replace("{{version}}", MOBILE_UI_VERSION)
+
+@app.get("/", response_class=HTMLResponse)
+def root():
+    return mobile_page_html()
+
+@app.get("/mobile", response_class=HTMLResponse)
+def mobile():
+    return mobile_page_html()
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "dify_url": dify_url, "version": MOBILE_UI_VERSION}
+
+@app.post("/proxy")
+async def proxy(payload: dict):
+    timeout = httpx.Timeout(120.0, connect=20.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(f"{dify_url}/query", json=payload)
+        response.raise_for_status()
+        return response.json()
+
+
+@app.post("/proxy/stream")
+async def proxy_stream(payload: dict):
+    async def _passthrough():
+        timeout = httpx.Timeout(120.0, connect=20.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            async with client.stream("POST", f"{dify_url}/query/stream", json=payload) as resp:
+                resp.raise_for_status()
+                async for chunk in resp.aiter_bytes():
+                    yield chunk
+    return StreamingResponse(_passthrough(), media_type="text/event-stream")

@@ -1,0 +1,43 @@
+{
+  "knowledge_bases": [
+    {
+      "id": "kb_sistema",
+      "name": "Sistema Brain-Home",
+      "description": "Architettura generale, infrastruttura Docker, Tailscale e configurazione del sistema.",
+      "tags": ["sistema", "docker", "tailscale", "infrastruttura", "brain-home", "architettura"],
+      "file": "kb.json",
+      "topics": ["infrastruttura", "configurazione", "network"]
+    },
+    {
+      "id": "kb_frontend",
+      "name": "Frontend Mobile",
+      "description": "Interfaccia web mobile, chat UI, FastAPI, versioning e deployment.",
+      "tags": ["frontend", "mobile", "chat", "ui", "fastapi", "web", "smartphone", "interfaccia"],
+      "file": "kb_frontend.json",
+      "topics": ["ui", "frontend", "mobile"]
+    },
+    {
+      "id": "kb_ai",
+      "name": "Intelligenza Artificiale e LLM",
+      "description": "Modelli LLM, Ollama, RAG, embedding, prompt engineering.",
+      "tags": ["ai", "llm", "ollama", "rag", "embedding", "modello", "intelligenza", "artificiale"],
+      "file": "kb_ai.json",
+      "topics": ["llm", "rag", "ai"]
+    }
+  ],
+  "routing_rules": [
+    {
+      "keywords": ["frontend", "mobile", "chat", "interfaccia", "ui", "smartphone", "web", "pagina", "bottone", "stile", "css"],
+      "target_kb": "kb_frontend"
+    },
+    {
+      "keywords": ["llm", "modello", "ollama", "rag", "risposta", "domanda", "intelligenza", "embedding", "prompt", "ai"],
+      "target_kb": "kb_ai"
+    },
+    {
+      "keywords": ["docker", "container", "tailscale", "rete", "infrastruttura", "sistema", "architettura", "deploy", "configurazione"],
+      "target_kb": "kb_sistema"
+    }
+  ],
+  "default_kb": "kb_sistema"
+}

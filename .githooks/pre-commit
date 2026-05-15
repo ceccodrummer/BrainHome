@@ -1,0 +1,9 @@
+#!/bin/sh
+# Pre-commit hook to bump frontend version when frontend files changed.
+changed=$(git diff --cached --name-only | grep -E '^services/fastapi/(templates|static)/|^services/fastapi/main.py$' || true)
+if [ -n "$changed" ]; then
+  echo "Frontend files changed:"
+  echo "$changed"
+  python scripts/bump-frontend-version.py
+  git add services/fastapi/main.py
+fi
