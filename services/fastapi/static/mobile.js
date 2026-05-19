@@ -6,6 +6,9 @@ const HEALTH_INTERVAL_MS = 30000;
 // Persistent session id for multi-turn conversation (localStorage survives tab close)
 let sessionId = localStorage.getItem('brainhome_session') || null;
 
+// Guard: prevents health-check from overwriting status while a query is running
+let queryInFlight = false;
+
 // ── Status helpers ──────────────────────────────────────────────────────────
 function setStatus(message, isError = false) {
   const statusEl = document.getElementById('status');
@@ -29,6 +32,7 @@ function setBackendStatus(message, isHealthy = false) {
 
 // ── Health check with auto-reconnect  (4.4.8) ──────────────────────────────
 async function checkBackendHealth() {
+  if (queryInFlight) return;  // don't interfere with an active query
   setStatus('Verifica backend...', false);
   try {
     const res = await fetch('/health');
@@ -36,6 +40,7 @@ async function checkBackendHealth() {
       throw new Error(`HTTP ${res.status}`);
     }
     const data = await res.json();
+    if (queryInFlight) return;  // query started while we were waiting
     if (data.status === 'ok') {
       setBackendStatus('Connesso', true);
       setStatus('Pronto.', false);
@@ -44,6 +49,7 @@ async function checkBackendHealth() {
       setStatus('Backend non disponibile.', true);
     }
   } catch (err) {
+    if (queryInFlight) return;
     console.error('Health check failed:', err);
     setBackendStatus('Non raggiungibile', false);
     setStatus('Backend non raggiungibile. Riprovo tra 30s.', true);
@@ -207,13 +213,27 @@ async function sendQuestion() {
   }
 
   if (button) button.disabled = true;
+  queryInFlight = true;
+
+  // Keep status updated every 2s while query is running —
+  // this overrides any health-check that fires during the wait.
+  const statusInterval = setInterval(() => {
+    if (queryInFlight) setStatus('Elaborazione in corso...', false);
+  }, 2000);
 
   appendMessage('user', question);
   if (questionField) questionField.value = '';
 
   setStatus('Invio in corso...', false);
   const loadingBubble = appendMessage('assistant', '');
-  if (loadingBubble) loadingBubble.classList.add('streaming');
+  if (loadingBubble) {
+    loadingBubble.classList.add('streaming');
+    // Show typing indicator immediately — before even the first SSE event
+    const ti = document.createElement('div');
+    ti.className = 'typing-indicator';
+    ti.innerHTML = '<span></span><span></span><span></span>';
+    loadingBubble.appendChild(ti);
+  }
 
   const payload = { question };
   if (sessionId) payload.session_id = sessionId;
@@ -258,9 +278,26 @@ async function sendQuestion() {
             sessionId = event.session_id;
             localStorage.setItem('brainhome_session', sessionId);
           }
+        } else if (event.type === 'thinking') {
+          setStatus('Elaborazione in corso...', false);
+          // Show animated typing indicator inside the bubble
+          if (loadingBubble && !loadingBubble._hasContent) {
+            if (!loadingBubble.querySelector('.typing-indicator')) {
+              loadingBubble.textContent = '';
+              loadingBubble.classList.add('streaming');
+              const ti = document.createElement('div');
+              ti.className = 'typing-indicator';
+              ti.innerHTML = '<span></span><span></span><span></span>';
+              loadingBubble.appendChild(ti);
+            }
+          }
         } else if (event.type === 'tool_start') {
           // Show a live indicator while the LLM is executing a tool
           if (loadingBubble) {
+            // Remove typing indicator
+            const ti = loadingBubble.querySelector('.typing-indicator');
+            if (ti) ti.remove();
+            loadingBubble._hasContent = true;
             loadingBubble._toolActivity = loadingBubble._toolActivity || [];
             const indicator = document.createElement('div');
             indicator.className = 'tool-activity';
@@ -284,11 +321,13 @@ async function sendQuestion() {
           }
         } else if (event.type === 'token') {
           if (loadingBubble) {
-            // Clear tool activity indicators on first text token
+            // Clear tool activity indicators and typing indicator on first token
             if (loadingBubble._toolActivity && loadingBubble._toolActivity.length > 0) {
               loadingBubble.textContent = '';
               loadingBubble._toolActivity = [];
             }
+            const ti = loadingBubble.querySelector('.typing-indicator');
+            if (ti) ti.remove();
             loadingBubble._rawText = (loadingBubble._rawText || '') + event.text;
             loadingBubble.textContent = '';
             loadingBubble.classList.add('streaming');
@@ -302,7 +341,11 @@ async function sendQuestion() {
             loadingBubble.classList.remove('streaming');
             loadingBubble.textContent = '';
             const answer = (event.answer || '').trim();
-            loadingBubble.appendChild(renderMarkdown(answer));
+            if (answer) {
+              loadingBubble.appendChild(renderMarkdown(answer));
+            } else {
+              loadingBubble.textContent = '(nessuna risposta)';
+            }
             // Tool badges
             const toolsUsed = event.tools_used && event.tools_used.length > 0
               ? event.tools_used
@@ -322,10 +365,8 @@ async function sendQuestion() {
 
     if (!gotDone && loadingBubble) {
       loadingBubble.classList.remove('streaming');
-      if (!loadingBubble.textContent.trim()) {
-        loadingBubble.textContent = 'Nessuna risposta ricevuta.';
-      }
-      setStatus('Stream terminato.', false);
+      loadingBubble.textContent = 'Risposta non ricevuta. Riprova.';
+      setStatus('Connessione interrotta.', true);
     }
   } catch (err) {
     console.error('Stream error:', err);
@@ -335,6 +376,8 @@ async function sendQuestion() {
     }
     setStatus('Errore di comunicazione.', true);
   } finally {
+    queryInFlight = false;
+    clearInterval(statusInterval);
     if (button) button.disabled = false;
   }
 }

@@ -13,6 +13,7 @@ Key features:
 Environment variables: see llm_provider.py and tool_executor.py for the full list.
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -44,7 +45,7 @@ KB_DIR = Path(os.getenv("KB_DIR", "/app/data"))
 KB_CONFIG_PATH = KB_DIR / "kb_config.json"
 KB_PATH = Path(os.getenv("KB_PATH", "/app/data/kb.json"))
 SESSIONS_FILE = Path(os.getenv("SESSIONS_FILE", "/app/data/sessions.json"))
-MAX_TOOL_ITERATIONS: int = int(os.getenv("MAX_TOOL_ITERATIONS", "8"))
+MAX_TOOL_ITERATIONS: int = int(os.getenv("MAX_TOOL_ITERATIONS", "3"))
 HISTORY_TURNS: int = int(os.getenv("HISTORY_TURNS", "6"))
 MAX_TOOL_RESULT_CHARS: int = int(os.getenv("MAX_TOOL_RESULT_CHARS", "1500"))
 
@@ -53,12 +54,13 @@ SYSTEM_PROMPT: str = os.getenv(
     (
         "Sei un Senior Software Architect e assistente IA del progetto Brain-Home. "
         "Rispondi sempre in italiano. "
-        "Hai accesso a strumenti per leggere, scrivere, cercare e gestire file nel workspace "
-        "dell'agente, eseguire script Python e fare commit Git. "
-        "Usa gli strumenti quando la richiesta lo richiede. "
-        "Quando non servono azioni, rispondi in modo preciso e conciso. "
-        "Non inventare informazioni non presenti nel contesto fornito. "
-        "Se il contesto non e sufficiente, dillo chiaramente."
+        "Hai accesso a tool per gestire file nel workspace, eseguire script e fare commit Git. "
+        "REGOLA ASSOLUTA: quando la richiesta implica creare, leggere, modificare, eliminare, "
+        "spostare o cercare file, DEVI chiamare il tool corrispondente tramite function call. "
+        "NON descrivere l'azione, NON fingere di averla eseguita: chiama SEMPRE il tool. "
+        "Se non usi il tool, l'azione NON avviene. "
+        "Quando non servono azioni su file, rispondi in modo preciso e conciso. "
+        "Non inventare informazioni non presenti nel contesto fornito."
     ),
 )
 
@@ -164,9 +166,25 @@ def _get_or_create_session(session_id: "Optional[str]") -> "tuple[str, dict]":
 
 
 # -------------------------------------------------------------------
+# Simple query detection (skip tool loop for conversational questions)
+# -------------------------------------------------------------------
+_TOOL_KEYWORDS = (
+    "file", "cartella", "directory", "folder", "scrivi", "leggi", "crea",
+    "cancella", "elimina", "sposta", "cerca", "trova", "struttura", "workspace",
+    "commit", "git", "script", "esegui", "tree", "lista", "elenco",
+    "mostra", "apri", "salva", "modifica", "aggiorna",
+)
+
+def _needs_tools(question: str) -> bool:
+    """Return True if the question likely requires file/tool operations."""
+    q = question.lower()
+    return any(kw in q for kw in _TOOL_KEYWORDS)
+
+
+# -------------------------------------------------------------------
 # Message builder
 # -------------------------------------------------------------------
-def _build_messages(question: str, session: dict, doc: "Optional[dict]") -> "list[dict]":
+def _build_messages(question: str, session: dict, doc: "Optional[dict]", use_tools: bool = False) -> "list[dict]":
     system_parts = [SYSTEM_PROMPT]
     if doc:
         kb_id = session.get("active_kb", DEFAULT_KB)
@@ -176,7 +194,19 @@ def _build_messages(question: str, session: dict, doc: "Optional[dict]") -> "lis
     for turn in session["history"][-HISTORY_TURNS:]:
         messages.append({"role": "user", "content": turn["question"]})
         messages.append({"role": "assistant", "content": turn["answer"]})
-    messages.append({"role": "user", "content": question})
+
+    # When tools are active, prepend an explicit directive so small models
+    # actually emit a function call instead of hallucinating the result.
+    if use_tools:
+        user_content = (
+            f"{question}\n\n"
+            "[ISTRUZIONE: devi usare uno o più tool per rispondere a questa richiesta. "
+            "Chiama il tool appropriato adesso — non descrivere l'azione, eseguila.]"
+        )
+    else:
+        user_content = question
+
+    messages.append({"role": "user", "content": user_content})
     return messages
 
 
@@ -211,11 +241,11 @@ def _append_tool_result(messages: list, tc: "llm.ToolCall", result: str) -> None
 # -------------------------------------------------------------------
 # Agentic loop (non-streaming)
 # -------------------------------------------------------------------
-async def _agentic_loop(messages: list) -> "tuple[str, list[str]]":
+async def _agentic_loop(messages: list, active_tools: "list | None" = None) -> "tuple[str, list[str]]":
     tools_used: list = []
     for iteration in range(MAX_TOOL_ITERATIONS):
         try:
-            response = await llm.chat(messages, TOOL_SCHEMAS)
+            response = await llm.chat(messages, active_tools)
         except Exception as exc:
             logger.warning("LLM error (iter %d): %s", iteration, exc)
             return (
@@ -243,21 +273,51 @@ async def _agentic_loop(messages: list) -> "tuple[str, list[str]]":
 # -------------------------------------------------------------------
 # Agentic loop (streaming)
 # -------------------------------------------------------------------
-async def _agentic_loop_stream(messages: list):
+async def _agentic_loop_stream(messages: list, active_tools: "list | None" = None):
     tools_used: list = []
     for iteration in range(MAX_TOOL_ITERATIONS):
+        yield {"type": "thinking", "iteration": iteration}
+
+        # Queue decouples the LLM async-generator from this generator so we
+        # can inject keep-alive events every 4 s during the (long) wait for
+        # the first token, preventing SSE connection drops.
+        q: asyncio.Queue = asyncio.Queue()
+
+        async def _produce(q=q):
+            try:
+                async for item in llm.chat_stream(messages, active_tools):
+                    await q.put(("item", item))
+            except Exception as exc:
+                await q.put(("err", exc))
+            finally:
+                await q.put(("done", None))
+
+        task = asyncio.create_task(_produce())
         buffered_tokens: list = []
         final_response = None
-        try:
-            async for item in llm.chat_stream(messages, TOOL_SCHEMAS):
+
+        while True:
+            try:
+                kind, value = await asyncio.wait_for(q.get(), timeout=4.0)
+            except asyncio.TimeoutError:
+                yield {"type": "keep_alive"}
+                continue
+
+            if kind == "done":
+                break
+            elif kind == "err":
+                logger.warning("LLM stream error (iter %d): %s", iteration, value)
+                await task
+                yield {"type": "final", "content": f"Errore LLM: {value}", "tools_used": tools_used}
+                return
+            else:
+                item = value
                 if isinstance(item, str):
                     buffered_tokens.append(item)
                 elif isinstance(item, llm.LLMResponse):
                     final_response = item
-        except Exception as exc:
-            logger.warning("LLM stream error (iter %d): %s", iteration, exc)
-            yield {"type": "final", "content": f"Errore LLM: {exc}", "tools_used": tools_used}
-            return
+
+        await task
 
         if final_response is None or final_response.finish_reason == "error":
             yield {"type": "final", "content": "Errore durante la generazione.", "tools_used": tools_used}
@@ -337,17 +397,21 @@ async def query_stream(payload: dict):
     kb_id = _route_question(question)
     session["active_kb"] = kb_id
     doc = _retrieve_best_document(question, kb_id)
-    messages = _build_messages(question, session, doc)
+    active_tools = TOOL_SCHEMAS if _needs_tools(question) else None
+    messages = _build_messages(question, session, doc, use_tools=active_tools is not None)
+    logger.info("Query [stream]: tools=%s  q=%s", active_tools is not None, question[:60])
     t_start = time.time()
 
     async def _sse_gen():
         yield f"data: {json.dumps({'type': 'meta', 'kb_used': kb_id, 'session_id': session_id})}\n\n"
         final_answer = ""
         tools_used: list = []
-        async for event in _agentic_loop_stream(messages):
+        async for event in _agentic_loop_stream(messages, active_tools):
             etype = event["type"]
-            if etype in ("token", "tool_start", "tool_result"):
+            if etype in ("token", "tool_start", "tool_result", "thinking"):
                 yield f"data: {json.dumps(event)}\n\n"
+            elif etype == "keep_alive":
+                yield ": keepalive\n\n"  # SSE comment — keeps TCP connection alive
             elif etype == "final":
                 final_answer = event.get("content", "")
                 tools_used = event.get("tools_used", [])
@@ -379,9 +443,11 @@ async def query(payload: dict):
     kb_id = _route_question(question)
     session["active_kb"] = kb_id
     doc = _retrieve_best_document(question, kb_id)
-    messages = _build_messages(question, session, doc)
+    active_tools = TOOL_SCHEMAS if _needs_tools(question) else None
+    messages = _build_messages(question, session, doc, use_tools=active_tools is not None)
+    logger.info("Query: tools=%s  q=%s", active_tools is not None, question[:60])
     t_start = time.time()
-    answer, tools_used = await _agentic_loop(messages)
+    answer, tools_used = await _agentic_loop(messages, active_tools)
     session["history"].append({"question": question, "answer": answer})
     _save_sessions()
     return {

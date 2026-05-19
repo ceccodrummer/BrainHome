@@ -17,6 +17,7 @@ Each schema maps 1:1 to an agent-tools HTTP endpoint:
   git_commit      → POST  /git-commit
 """
 
+import json
 import logging
 import os
 from typing import Any
@@ -46,11 +47,11 @@ TOOL_SCHEMAS: list[dict] = [
                 "properties": {
                     "path": {
                         "type": "string",
-                        "description": "Percorso del file relativo al workspace (es. 'src/main.py', 'note/todo.txt').",
+                        "description": "Percorso del file relativo al workspace. Esempio: 'prova.txt', 'note/todo.txt', 'src/main.py'.",
                     },
                     "content": {
                         "type": "string",
-                        "description": "Contenuto completo da scrivere nel file.",
+                        "description": "Il testo completo da scrivere nel file. Esempio: 'Ciao mondo!'. DEVE essere una stringa, non un oggetto.",
                     },
                 },
                 "required": ["path", "content"],
@@ -302,9 +303,15 @@ async def _dispatch(tool_name: str, args: dict[str, Any]) -> str:
 
         # ── write_file ──────────────────────────────────────────────────────
         if tool_name == "write_file":
+            content = args["content"]
+            # Sanitize: model sometimes passes schema descriptor dict instead of string
+            if isinstance(content, dict):
+                content = content.get("description") or json.dumps(content, ensure_ascii=False)
+            elif not isinstance(content, str):
+                content = str(content)
             resp = await client.post(
                 f"{AGENT_TOOLS_URL}/write",
-                json={"path": args["path"], "content": args["content"]},
+                json={"path": args["path"], "content": content},
                 headers=headers,
             )
             resp.raise_for_status()

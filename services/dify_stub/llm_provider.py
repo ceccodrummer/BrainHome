@@ -161,21 +161,47 @@ def _try_parse_text_tool_calls(text: str) -> list[ToolCall]:
       {"name": "fn",  "arguments": {...}}
       {"name": "fn",  "parameters": {...}}
       [{"name": "fn", "arguments": {...}}, ...]
+      <tool_call>{...}</tool_call>
+      Any text that CONTAINS a JSON object with a "name" key
+      ```json {...} ```
     """
+    import re
     text = text.strip()
-    if not text.startswith(("{", "[")):
+
+    # Pattern 1: <tool_call>{...}</tool_call>
+    xml_match = re.search(r'<tool_call>\s*([\s\S]*?)\s*</tool_call>', text)
+    if xml_match:
+        text = xml_match.group(1).strip()
+
+    # Pattern 2: ```json...``` or ```...```
+    md_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
+    if md_match:
+        text = md_match.group(1).strip()
+
+    # Determine candidate JSON string
+    if text.startswith(("{", "[")):
+        candidate = text
+    else:
+        # Extract first JSON object or array from mixed text
+        m = re.search(r'(\{[\s\S]*\}|\[[\s\S]*\])', text)
+        candidate = m.group(1) if m else None
+
+    if not candidate:
         return []
+
     try:
-        parsed = json.loads(text)
+        parsed = json.loads(candidate)
     except Exception:
-        # Try extracting the first JSON object/array from mixed text
-        import re
-        m = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
-        if not m:
-            return []
-        try:
-            parsed = json.loads(m.group(1))
-        except Exception:
+        # Last resort: find smallest valid JSON object with "name" key
+        for m in re.finditer(r'\{[^{}]*\}', text):
+            try:
+                obj = json.loads(m.group())
+                if isinstance(obj, dict) and obj.get("name"):
+                    parsed = obj
+                    break
+            except Exception:
+                continue
+        else:
             return []
 
     if isinstance(parsed, dict):
@@ -338,10 +364,14 @@ async def chat_stream(
 
     # Streaming fallback: same text-based tool call detection as non-streaming
     if not tool_calls and full_content and finish_reason in ("stop", "tool_calls"):
+        logger.info("Streaming fallback check — full_content=%r", full_content[:400])
         tool_calls = _try_parse_text_tool_calls(full_content)
         if tool_calls:
+            logger.info("Streaming fallback: parsed %d tool_call(s) from text", len(tool_calls))
             finish_reason = "tool_calls"
             full_content = ""
+        else:
+            logger.info("Streaming fallback: no tool calls found in content")
 
     yield LLMResponse(
         content=full_content or None,
