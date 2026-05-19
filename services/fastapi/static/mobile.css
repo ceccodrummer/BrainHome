@@ -203,6 +203,37 @@ details[open] > summary {
   margin-bottom: 5px;
   letter-spacing: 0.02em;
 }
+/* ── Tool activity (live indicator during tool execution) ── */
+.tool-activity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #555;
+  padding: 3px 0;
+  opacity: 0.85;
+}
+.tool-activity.tool-done {
+  opacity: 0.5;
+}
+.tool-spinner {
+  display: inline-block;
+  width: 13px;
+  font-size: 0.78rem;
+  animation: spin 1s linear infinite;
+}
+.tool-activity.tool-done .tool-spinner {
+  animation: none;
+  color: #0f9d58;
+}
+.tool-name {
+  font-family: 'Courier New', monospace;
+  font-size: 0.76rem;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 /* ── Markdown in bubbles ───────────────────────── */
 .bubble pre {
   background: #f1f3f4;

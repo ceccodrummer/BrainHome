@@ -258,11 +258,39 @@ async function sendQuestion() {
             sessionId = event.session_id;
             localStorage.setItem('brainhome_session', sessionId);
           }
+        } else if (event.type === 'tool_start') {
+          // Show a live indicator while the LLM is executing a tool
+          if (loadingBubble) {
+            loadingBubble._toolActivity = loadingBubble._toolActivity || [];
+            const indicator = document.createElement('div');
+            indicator.className = 'tool-activity';
+            indicator.dataset.tool = event.tool;
+            indicator.innerHTML = `<span class="tool-spinner"></span><span class="tool-name">&#9881;&#65039; ${event.tool}</span>`;
+            loadingBubble._toolActivity.push(indicator);
+            loadingBubble.textContent = '';
+            loadingBubble.classList.add('streaming');
+            loadingBubble._toolActivity.forEach(el => loadingBubble.appendChild(el));
+            const cw = document.getElementById('chatWindow');
+            if (cw) cw.scrollTop = cw.scrollHeight;
+          }
+        } else if (event.type === 'tool_result') {
+          // Mark the matching tool indicator as completed
+          if (loadingBubble && loadingBubble._toolActivity) {
+            const indicator = loadingBubble._toolActivity.find(el => el.dataset.tool === event.tool);
+            if (indicator) {
+              indicator.classList.add('tool-done');
+              indicator.querySelector('.tool-spinner').textContent = '\u2713';
+            }
+          }
         } else if (event.type === 'token') {
           if (loadingBubble) {
-            // streaming: accumulate raw text, re-render markdown on each chunk
+            // Clear tool activity indicators on first text token
+            if (loadingBubble._toolActivity && loadingBubble._toolActivity.length > 0) {
+              loadingBubble.textContent = '';
+              loadingBubble._toolActivity = [];
+            }
             loadingBubble._rawText = (loadingBubble._rawText || '') + event.text;
-            loadingBubble.textContent = ''; // clear placeholder
+            loadingBubble.textContent = '';
             loadingBubble.classList.add('streaming');
             loadingBubble.appendChild(renderMarkdown(loadingBubble._rawText));
             const cw = document.getElementById('chatWindow');
@@ -275,12 +303,14 @@ async function sendQuestion() {
             loadingBubble.textContent = '';
             const answer = (event.answer || '').trim();
             loadingBubble.appendChild(renderMarkdown(answer));
-            // Tool badge
-            const toolUsed = event.tool_used || (event.tools_used && event.tools_used.join(' → '));
-            if (toolUsed) {
+            // Tool badges
+            const toolsUsed = event.tools_used && event.tools_used.length > 0
+              ? event.tools_used
+              : event.tool_used ? [event.tool_used] : [];
+            if (toolsUsed.length > 0) {
               const badge = document.createElement('span');
               badge.className = 'tool-badge';
-              badge.textContent = '⚡ ' + toolUsed;
+              badge.textContent = '\u26A1 ' + toolsUsed.join(' \u2192 ');
               loadingBubble.prepend(badge);
             }
             appendDetails(loadingBubble, { ...metaData, ...event });

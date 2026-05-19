@@ -2,9 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir fastapi uvicorn httpx
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py /app/app.py
+COPY app.py llm_provider.py tool_executor.py ./
 
 EXPOSE 3000
 
