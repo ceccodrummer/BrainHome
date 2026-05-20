@@ -1,0 +1,131 @@
+{
+  "57c7a5d4-c51d-48c1-af31-a1eb3817a118": {
+    "history": [],
+    "active_kb": "kb_sistema",
+    "created_at": 1779227709.9598613
+  },
+  "a3ba3f81-e6ae-4582-94e1-2411ad0160c8": {
+    "history": [
+      {
+        "question": "ci siete?",
+        "answer": "Sì, ci sono! Sono un Senior Frontend Developer e mi occupo di HTML, CSS, JavaScript, UI/UX e web performance del sistema BrainHome. Come posso aiutarti oggi? Vuoi sapere qualcosa sul sistema o hai una domanda specifica sulla mia area di competenza?"
+      },
+      {
+        "question": "Ciao",
+        "answer": "Ciao! Benvenuto! Sono qui per aiutarti con qualsiasi domanda o problema tu abbia riguardo al sistema BrainHome, in particolare sulla parte frontend. Come posso aiutarti oggi? Vuoi discutere di UI/UX, web performance o forse di come integrare il servizio Dify placeholder o il servizio FastAPI nel sistema? Sono tutto orecchi!"
+      },
+      {
+        "question": "@dev mi senti?",
+        "answer": "Sì, ti sento! Sono online e pronto a rispondere alle tue domande o a discutere di argomenti relativi al sistema BrainHome, in particolare sulla parte frontend. Come posso aiutarti oggi? Hai bisogno di aiuto con un problema tecnico o vuoi discutere di una nuova feature?"
+      },
+      {
+        "question": "ci sei?",
+        "answer": "Sì, ci sono! Non preoccuparti, sono sempre qui e pronto a rispondere alle tue domande o a discutere di argomenti relativi al sistema BrainHome. Come posso aiutarti oggi? Vuoi parlare di HTML, CSS, JavaScript o forse di come ottimizzare la web performance del sistema? Sono qui per aiutarti!"
+      },
+      {
+        "question": "ci siete?",
+        "answer": "Sì, ci sono! Non cambiare, sono sempre qui! Sono pronto a rispondere alle tue domande o a discutere di argomenti relativi al sistema BrainHome. Come posso aiutarti oggi? Vuoi sapere qualcosa sulla mia area di competenza, come ad esempio UI/UX, web performance o JavaScript? Sono tutto orecchi!"
+      },
+      {
+        "question": "frontend spiegami il file mobile.js",
+        "answer": "Il file mobile.js contiene la logica del frontend mobile di BrainHome. Questo file è responsabile di gestire gli eventi, le interazioni e le funzionalità della pagina web sul dispositivo mobile.\n\nEcco un esempio di cosa potrebbe contenere il file mobile.js:\n```javascript\n// Gestione degli eventi di click sui bottoni\ndocument.addEventListener('click', function(event) {\n  if (event.target.classList.contains('btn')) {\n    // Eseguire azione quando si clicca su un bottone\n  }\n});\n\n// Gestione della navigazione tra le pagine\ndocument.addEventListener('hashchange', function() {\n  // Aggiornare il contenuto della pagina in base all'hash della URL\n});\n\n// Inizializzazione della pagina\ndocument.addEventListener('DOMContentLoaded', function() {\n  // Eseguire azioni di inizializzazione della pagina\n});\n```\nIl file mobile.js potrebbe anche contenere funzioni per gestire le richieste AJAX, la validazione dei form, la gestione degli errori e altre funzionalità specifiche del frontend mobile di BrainHome.\n\nSpero che questo ti abbia aiutato a capire meglio il file mobile.js! Se hai altre domande, non esitare a chiedere."
+      },
+      {
+        "question": "mi ricevi?",
+        "answer": "Errore durante la generazione."
+      },
+      {
+        "question": "mi sentite?",
+        "answer": "Errore durante la generazione."
+      },
+      {
+        "question": "ci sei?",
+        "answer": "Errore durante la generazione."
+      },
+      {
+        "question": "ci siete?",
+        "answer": "Errore durante la generazione."
+      },
+      {
+        "question": "ci sei?",
+        "answer": "Errore LLM: "
+      },
+      {
+        "question": "ci sei?",
+        "answer": "Errore LLM: "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779227891.6315053
+  },
+  "agentlink:20b4e252-99b7-49b3-9949-aa4d77e40b28:dify:agent-3": {
+    "history": [
+      {
+        "question": "[Motivo delega: Richiesta di analisi UI mobile] Analizza la UI mobile e fornisci feedback",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): Client error '429 Too Many Requests' for url 'https://api.groq.com/openai/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429"
+      }
+    ],
+    "active_kb": "kb_frontend",
+    "created_at": 1779230760.735887
+  },
+  "83438f01-87c3-4bae-9598-1597d2bd2487": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): Client error '429 Too Many Requests' for url 'https://api.groq.com/openai/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429"
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779232719.2782762
+  },
+  "97fe2b70-8bff-4bd5-9cef-043e3e1e2da8": {
+    "history": [],
+    "active_kb": "kb_sistema",
+    "created_at": 1779233039.839862
+  },
+  "d2abc3d7-9851-4e21-b7fb-4fc78c1d3bd0": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779233476.5012352
+  },
+  "9bdd6c80-099e-4d47-9ada-a3fea2c2a7d8": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779233640.3413677
+  },
+  "20a3d40b-236b-4d23-9e7b-fb7b61e0ccf3": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779233907.433799
+  },
+  "test": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779233928.9487
+  },
+  "25cb9e35-d95e-45d8-848e-b493e5cc06e4": {
+    "history": [],
+    "active_kb": "kb_sistema",
+    "created_at": 1779234556.7343032
+  }
+}

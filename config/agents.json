@@ -1,0 +1,23 @@
+[
+  {
+    "id": "dify",
+    "name": "Principale",
+    "url": "http://dify:3000",
+    "mention": "principale",
+    "role": "primary"
+  },
+  {
+    "id": "agent-2",
+    "name": "DevOps",
+    "url": "http://agent-2:3000",
+    "mention": "devops",
+    "role": "devops"
+  },
+  {
+    "id": "agent-3",
+    "name": "Frontend",
+    "url": "http://agent-3:3000",
+    "mention": "frontend",
+    "role": "frontend"
+  }
+]

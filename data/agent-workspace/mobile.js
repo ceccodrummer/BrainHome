@@ -1,0 +1,1 @@
+/* Il file mobile.js contiene la logica del frontend mobile di BrainHome */

@@ -26,9 +26,11 @@ Backward-compatible aliases (still accepted):
   LITELLM_MODEL → LLM_MODEL
 """
 
+import asyncio
 import json
 import logging
 import os
+import random
 from typing import AsyncIterator, Optional
 
 import httpx
@@ -59,6 +61,15 @@ LLM_MODEL: str = (
 LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.2"))
 LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", "1024"))
 LLM_TIMEOUT: float = float(os.getenv("LLM_TIMEOUT", "120.0"))
+LLM_RETRY_MAX: int = int(os.getenv("LLM_RETRY_MAX", "5"))
+LLM_RETRY_BASE_DELAY: float = float(os.getenv("LLM_RETRY_BASE_DELAY", "1.5"))
+LLM_RETRY_MAX_DELAY: float = float(os.getenv("LLM_RETRY_MAX_DELAY", "20.0"))
+LLM_RETRY_JITTER: float = float(os.getenv("LLM_RETRY_JITTER", "0.25"))
+LLM_FALLBACK_BASE_URL: str = os.getenv("LLM_FALLBACK_BASE_URL", "").rstrip("/")
+if LLM_FALLBACK_BASE_URL and not LLM_FALLBACK_BASE_URL.endswith("/v1"):
+    LLM_FALLBACK_BASE_URL += "/v1"
+LLM_FALLBACK_API_KEY: str = os.getenv("LLM_FALLBACK_API_KEY", "")
+LLM_FALLBACK_MODEL: str = os.getenv("LLM_FALLBACK_MODEL", LLM_MODEL)
 
 logger.info(
     "LLM provider ready — base_url=%s  model=%s  auth=%s",
@@ -68,11 +79,79 @@ logger.info(
 )
 
 
-def _headers() -> dict:
+def _headers(api_key: str | None = None) -> dict:
+    key = api_key if api_key is not None else LLM_API_KEY
     h = {"Content-Type": "application/json"}
-    if LLM_API_KEY:
-        h["Authorization"] = f"Bearer {LLM_API_KEY}"
+    if key:
+        h["Authorization"] = f"Bearer {key}"
     return h
+
+
+def _has_fallback() -> bool:
+    return bool(LLM_FALLBACK_BASE_URL)
+
+
+def _retry_delay(attempt: int, response: httpx.Response | None = None) -> float:
+    if response is not None:
+        retry_after = response.headers.get("retry-after")
+        if retry_after:
+            try:
+                delay = float(retry_after)
+                return min(delay, LLM_RETRY_MAX_DELAY)
+            except ValueError:
+                pass
+    delay = min(LLM_RETRY_BASE_DELAY * (2 ** (attempt - 1)), LLM_RETRY_MAX_DELAY)
+    jitter = delay * LLM_RETRY_JITTER
+    return max(0.0, delay + random.uniform(-jitter, jitter))
+
+
+def _should_retry_status(status_code: int) -> bool:
+    return status_code in {429, 502, 503, 504}
+
+
+def _should_retry_primary(status_code: int) -> bool:
+    """Retry the primary provider only when fallback is unavailable."""
+    if status_code == 429 and _has_fallback():
+        return False
+    return _should_retry_status(status_code)
+
+
+async def _retryable_post(client: httpx.AsyncClient, url: str, headers: dict, payload: dict) -> httpx.Response:
+    last_exc: httpx.HTTPError | None = None
+    for attempt in range(1, LLM_RETRY_MAX + 1):
+        try:
+            resp = await client.post(url, headers=headers, json=payload)
+            resp.raise_for_status()
+            return resp
+        except httpx.HTTPStatusError as exc:
+            last_exc = exc
+            status = exc.response.status_code
+            if attempt >= LLM_RETRY_MAX or not _should_retry_status(status):
+                raise
+            delay = _retry_delay(attempt, exc.response)
+            logger.warning(
+                "LLM request returned %d; retry %d/%d after %.1fs",
+                status,
+                attempt,
+                LLM_RETRY_MAX,
+                delay,
+            )
+            await asyncio.sleep(delay)
+        except httpx.HTTPError as exc:
+            last_exc = exc
+            if attempt >= LLM_RETRY_MAX:
+                raise
+            delay = _retry_delay(attempt)
+            logger.warning(
+                "LLM transport error; retry %d/%d after %.1fs: %s",
+                attempt,
+                LLM_RETRY_MAX,
+                delay,
+                exc,
+            )
+            await asyncio.sleep(delay)
+    assert last_exc is not None
+    raise last_exc
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -233,6 +312,40 @@ def _tool_call_to_dict(tc: ToolCall) -> dict:
     }
 
 
+def _is_tool_use_failed(exc: httpx.HTTPStatusError) -> bool:
+    if exc.response.status_code != 400:
+        return False
+    try:
+        data = exc.response.json()
+    except Exception:
+        return False
+    err = data.get("error") or {}
+    return err.get("code") == "tool_use_failed"
+
+
+def _textual_tool_instruction(tools: list[dict]) -> str:
+    tool_names = []
+    for tool in tools:
+        fn = (tool or {}).get("function") or {}
+        name = fn.get("name")
+        if name:
+            tool_names.append(name)
+    allowed = ", ".join(tool_names) if tool_names else "nessuno"
+    return (
+        "Se devi usare un tool, NON usare function calling nativo. "
+        "Emetti SOLO un blocco nel formato "
+        "<tool_call>{\"name\":\"nome_tool\",\"arguments\":{...}}</tool_call>. "
+        f"Usa esclusivamente uno di questi tool: {allowed}. "
+        "Gli arguments devono essere JSON valido con tipi corretti."
+    )
+
+
+def _messages_with_textual_tool_retry(messages: list[dict], tools: list[dict]) -> list[dict]:
+    retried = list(messages)
+    retried.append({"role": "system", "content": _textual_tool_instruction(tools)})
+    return retried
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Non-streaming call
 # ──────────────────────────────────────────────────────────────────────────────
@@ -240,13 +353,18 @@ def _tool_call_to_dict(tc: ToolCall) -> dict:
 async def chat(
     messages: list[dict],
     tools: Optional[list[dict]] = None,
+    base_url: str | None = None,
+    api_key: str | None = None,
+    model: str | None = None,
 ) -> LLMResponse:
     """
     POST /v1/chat/completions and return a parsed LLMResponse.
     Raises httpx exceptions on network / HTTP errors.
     """
+    actual_base_url = base_url or LLM_BASE_URL
+    actual_model = model or LLM_MODEL
     payload: dict = {
-        "model": LLM_MODEL,
+        "model": actual_model,
         "messages": messages,
         "temperature": LLM_TEMPERATURE,
         "max_tokens": LLM_MAX_TOKENS,
@@ -256,13 +374,49 @@ async def chat(
         payload["tool_choice"] = "auto"
 
     async with httpx.AsyncClient(timeout=httpx.Timeout(LLM_TIMEOUT)) as client:
-        resp = await client.post(
-            f"{LLM_BASE_URL}/chat/completions",
-            headers=_headers(),
-            json=payload,
-        )
-        resp.raise_for_status()
-        return _parse_response(resp.json())
+        try:
+            resp = await _retryable_post(
+                client,
+                f"{actual_base_url}/chat/completions",
+                _headers(api_key),
+                payload,
+            )
+            return _parse_response(resp.json())
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code
+            if (
+                actual_base_url == LLM_BASE_URL
+                and _has_fallback()
+                and _should_retry_primary(status)
+            ):
+                logger.warning(
+                    "Primary LLM provider failed with %d; switching to fallback %s",
+                    status,
+                    LLM_FALLBACK_BASE_URL,
+                )
+                return await chat(
+                    messages,
+                    tools=tools,
+                    base_url=LLM_FALLBACK_BASE_URL,
+                    api_key=LLM_FALLBACK_API_KEY,
+                    model=LLM_FALLBACK_MODEL,
+                )
+            if not tools or not _is_tool_use_failed(exc):
+                raise
+            logger.warning("Native tool use failed; retrying with textual tool-call fallback")
+            retry_payload = {
+                "model": actual_model,
+                "messages": _messages_with_textual_tool_retry(messages, tools),
+                "temperature": LLM_TEMPERATURE,
+                "max_tokens": LLM_MAX_TOKENS,
+            }
+            retry_resp = await _retryable_post(
+                client,
+                f"{actual_base_url}/chat/completions",
+                _headers(api_key),
+                retry_payload,
+            )
+            return _parse_response(retry_resp.json())
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -303,49 +457,138 @@ async def chat_stream(
 
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(LLM_TIMEOUT)) as client:
-            async with client.stream(
-                "POST",
-                f"{LLM_BASE_URL}/chat/completions",
-                headers=_headers(),
-                json=payload,
-            ) as resp:
-                resp.raise_for_status()
+            for attempt in range(1, LLM_RETRY_MAX + 1):
+                try:
+                    async with client.stream(
+                        "POST",
+                        f"{LLM_BASE_URL}/chat/completions",
+                        headers=_headers(),
+                        json=payload,
+                    ) as resp:
+                        resp.raise_for_status()
 
-                async for line in resp.aiter_lines():
-                    if not line.startswith("data: "):
-                        continue
-                    chunk_data = line[6:].strip()
-                    if chunk_data == "[DONE]":
-                        break
-                    try:
-                        chunk = json.loads(chunk_data)
-                    except Exception:
-                        continue
+                        async for line in resp.aiter_lines():
+                            if not line.startswith("data: "):
+                                continue
+                            chunk_data = line[6:].strip()
+                            if chunk_data == "[DONE]":
+                                break
+                            try:
+                                chunk = json.loads(chunk_data)
+                            except Exception:
+                                continue
 
-                    choice = (chunk.get("choices") or [{}])[0]
-                    delta = choice.get("delta") or {}
-                    fr = choice.get("finish_reason")
-                    if fr:
-                        finish_reason = fr
+                            choice = (chunk.get("choices") or [{}])[0]
+                            delta = choice.get("delta") or {}
+                            fr = choice.get("finish_reason")
+                            if fr:
+                                finish_reason = fr
 
-                    # Text token
-                    token = delta.get("content") or ""
-                    if token:
-                        full_content += token
-                        yield token
+                            # Text token
+                            token = delta.get("content") or ""
+                            if token:
+                                full_content += token
+                                yield token
 
-                    # Tool call delta accumulation
-                    for tc_delta in delta.get("tool_calls") or []:
-                        idx = tc_delta.get("index", 0)
-                        if idx not in tool_calls_acc:
-                            tool_calls_acc[idx] = {
-                                "id": tc_delta.get("id", f"call_{idx}"),
-                                "function": {"name": "", "arguments": ""},
-                            }
-                        fn = tc_delta.get("function") or {}
-                        tool_calls_acc[idx]["function"]["name"] += fn.get("name") or ""
-                        tool_calls_acc[idx]["function"]["arguments"] += fn.get("arguments") or ""
+                            # Tool call delta accumulation
+                            for tc_delta in delta.get("tool_calls") or []:
+                                idx = tc_delta.get("index", 0)
+                                if idx not in tool_calls_acc:
+                                    tool_calls_acc[idx] = {
+                                        "id": tc_delta.get("id", f"call_{idx}"),
+                                        "function": {"name": "", "arguments": ""},
+                                    }
+                                fn = tc_delta.get("function") or {}
+                                tool_calls_acc[idx]["function"]["name"] += fn.get("name") or ""
+                                tool_calls_acc[idx]["function"]["arguments"] += fn.get("arguments") or ""
+                    break
+                except httpx.HTTPStatusError as exc:
+                    status = exc.response.status_code
+                    if (
+                        _has_fallback()
+                        and status in {429, 502, 503, 504}
+                    ):
+                        logger.warning(
+                            "Primary streaming LLM returned %d; switching immediately to fallback %s",
+                            status,
+                            LLM_FALLBACK_BASE_URL,
+                        )
+                        fallback_response = await chat(
+                            messages,
+                            tools=tools,
+                            base_url=LLM_FALLBACK_BASE_URL,
+                            api_key=LLM_FALLBACK_API_KEY,
+                            model=LLM_FALLBACK_MODEL,
+                        )
+                        yield fallback_response
+                        return
+                    if attempt >= LLM_RETRY_MAX or not _should_retry_primary(status):
+                        raise
+                    delay = _retry_delay(attempt, exc.response)
+                    logger.warning(
+                        "LLM stream request returned %d; retry %d/%d after %.1fs",
+                        status,
+                        attempt,
+                        LLM_RETRY_MAX,
+                        delay,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                except httpx.HTTPError as exc:
+                    if attempt >= LLM_RETRY_MAX:
+                        raise
+                    delay = _retry_delay(attempt)
+                    logger.warning(
+                        "LLM stream transport error; retry %d/%d after %.1fs: %s",
+                        attempt,
+                        LLM_RETRY_MAX,
+                        delay,
+                        exc,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
 
+    except httpx.HTTPError as exc:
+        status = None
+        if isinstance(exc, httpx.HTTPStatusError):
+            status = exc.response.status_code
+        if tools and isinstance(exc, httpx.HTTPStatusError) and _is_tool_use_failed(exc):
+            logger.warning("Native streaming tool use failed; retrying with textual tool-call fallback")
+            retry_response = await chat(_messages_with_textual_tool_retry(messages, tools), tools=None)
+            yield retry_response
+            return
+        if _has_fallback():
+            logger.warning(
+                "Primary streaming LLM failed with %s; switching to fallback provider %s",
+                status or exc,
+                LLM_FALLBACK_BASE_URL,
+            )
+            fallback_response = await chat(
+                messages,
+                tools=tools,
+                base_url=LLM_FALLBACK_BASE_URL,
+                api_key=LLM_FALLBACK_API_KEY,
+                model=LLM_FALLBACK_MODEL,
+            )
+            yield fallback_response
+            return
+            logger.warning(
+                "Primary streaming LLM failed with %d; switching to fallback provider %s",
+                status,
+                LLM_FALLBACK_BASE_URL,
+            )
+            fallback_response = await chat(
+                messages,
+                tools=tools,
+                base_url=LLM_FALLBACK_BASE_URL,
+                api_key=LLM_FALLBACK_API_KEY,
+                model=LLM_FALLBACK_MODEL,
+            )
+            yield fallback_response
+            return
+        logger.warning("LLM stream error: %s", exc)
+        yield LLMResponse(content=None, tool_calls=[], finish_reason="error")
+        return
     except Exception as exc:
         logger.warning("LLM stream error: %s", exc)
         yield LLMResponse(content=None, tool_calls=[], finish_reason="error")

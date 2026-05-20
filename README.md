@@ -105,6 +105,7 @@ BrainHome/
 | [04 — Input Telefono](docs/04-Input-Telefono.md) | Interfaccia voce/testo da smartphone |
 | [05 — Agentic Tools](docs/05-Agentic-Tools.md) | Strumenti di scrittura e azione dell'agente |
 | [06 — Hardware & Scalabilità](docs/06-Hardware-Scalabilita.md) | Mini PC, risorse, espansione futura |
+| [07 — Agent to Agent](docs/07-Agent-to-Agent.md) | Action strutturata di comunicazione e delega tra agenti |
 
 ---
 

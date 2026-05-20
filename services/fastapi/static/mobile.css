@@ -96,6 +96,7 @@ body {
   background: white;
   color: #1c3732;
   border-bottom-left-radius: 4px;
+  border-left: 3px solid #0f9d58;
 }
 .bubble.streaming {
   color: #5f6368;
@@ -203,6 +204,24 @@ details[open] > summary {
   margin-bottom: 5px;
   letter-spacing: 0.02em;
 }
+.delegation-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #e3f2fd;
+  color: #0d47a1;
+  border: 1px solid #90caf9;
+  border-radius: 10px;
+  padding: 1px 7px;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  letter-spacing: 0.02em;
+}
+.delegation-badge-error {
+  background: #fdecea;
+  color: #b00020;
+  border-color: #f5b7b1;
+}
 /* ── Tool activity (live indicator during tool execution) ── */
 .tool-activity {
   display: flex;
@@ -301,15 +320,64 @@ details[open] > summary {
 }
 .input-toolbar {
   display: flex;
-  gap: 10px;
-  padding: 12px 16px 16px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 14px;
   background: #eef7ed;
-  align-items: flex-end;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 20;
+}
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+/* ── Agent selector ────────────────────────────────── */
+.agent-selector {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 0;
+  -webkit-overflow-scrolling: touch;
+}
+.agent-selector::-webkit-scrollbar { display: none; }
+.agent-pill {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 1.5px solid #a5d6a7;
+  background: white;
+  color: #1c3732;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.agent-pill:hover {
+  background: #e8f5e9;
+}
+.agent-pill.active {
+  background: var(--agent-color, #0f9d58);
+  border-color: var(--agent-color, #0f9d58);
+  color: white;
+}
+.agent-pill:first-child.active {
+  background: #0f9d58;
+  border-color: #0f9d58;
+}
+/* ── Agent name label (above bubble) ────────────────── */
+.agent-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  margin-left: 6px;
 }
 .input-toolbar textarea {
   flex: 1;

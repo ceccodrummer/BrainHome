@@ -1,3 +1,18 @@
+# ─── Agent template ───────────────────────────────────────────────────────────
+# All agent instances share the same image; only env-file and data volume differ.
+# Use scripts/spawn-agent.py to instantiate new agents.
+x-agent-base: &agent-base
+  image: brainhome-dify:latest
+  restart: unless-stopped
+  entrypoint: ""
+  command: uvicorn app:app --host 0.0.0.0 --port 3000
+  depends_on:
+    - postgres
+  networks:
+    - brainhome
+  volumes:
+    - huggingface_cache:/root/.cache/huggingface
+
 services:
   postgres:
     image: postgres:15
@@ -13,20 +28,23 @@ services:
       - brainhome
 
   dify:
+    <<: *agent-base
     build:
       context: ./services/dify_stub
+    image: brainhome-dify:latest
     container_name: dify
-    restart: unless-stopped
     env_file:
       - ./config/dify.env
+    environment:
+      AGENT_ID: dify
+      AGENT_NAME: Principale
+      AGENT_ROLE: primary
     ports:
-      - "100.87.153.12:3001:3000"
+      - "3001:3000"
     volumes:
       - ./data/dify:/app/data
-    depends_on:
-      - postgres
-    networks:
-      - brainhome
+      - ./config:/config:ro
+      - huggingface_cache:/root/.cache/huggingface
 
   fastapi:
     image: tiangolo/uvicorn-gunicorn-fastapi:python3.11
@@ -36,8 +54,9 @@ services:
       - ./config/fastapi.env
     volumes:
       - ./services/fastapi:/app
+      - ./config:/config:ro
     ports:
-      - "100.87.153.12:8000:80"
+      - "8000:80"
     depends_on:
       - dify
     networks:
@@ -77,3 +96,6 @@ services:
 networks:
   brainhome:
     driver: bridge
+
+volumes:
+  huggingface_cache:

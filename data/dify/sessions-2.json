@@ -1,0 +1,219 @@
+{
+  "c539b5ca-8296-44fe-a60a-7165c4672b96": {
+    "history": [],
+    "active_kb": "kb_sistema",
+    "created_at": 1779227709.959236
+  },
+  "b2c370b0-71f8-40c4-8799-09006e0eb305": {
+    "history": [
+      {
+        "question": "Ciao agente devops, test ruolo.",
+        "answer": "Ciao! Sono il Senior DevOps Engineer responsabile del sistema BrainHome. Sono qui per aiutarti con qualsiasi problema o domanda tu abbia riguardo al sistema. Come posso aiutarti oggi? Vuoi sapere qualcosa sul funzionamento del sistema, o forse hai bisogno di aiuto con una specifica funzionalità? Sono pronto ad aiutarti! \n\nIn particolare, posso aiutarti con:\n- Problemi di deploy e configurazione del sistema\n- Ottimizzazione delle prestazioni del sistema\n- Gestione della knowledge base e del modello LLM\n- Configurazione del servizio Dify placeholder e del servizio FastAPI\n\nDimmi pure cosa ti serve!"
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779227809.7566066
+  },
+  "ef237bfb-5bff-4e7d-9140-b0832301fcf0": {
+    "history": [
+      {
+        "question": "Ciao da proxy.",
+        "answer": "Ciao! Sono il Senior DevOps Engineer responsabile del sistema BrainHome. Come posso aiutarti oggi? Hai bisogno di assistenza con il servizio Dify placeholder o con il servizio FastAPI che fa da proxy verso il modello LLM? O forse hai domande sulla gestione della knowledge base o sul flusso di lavoro di CI/CD? Sono qui per aiutarti!"
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779227817.2272153
+  },
+  "00de3ad4-f2ea-48d8-bf95-68a5b53b7938": {
+    "history": [
+      {
+        "question": "ci siete?",
+        "answer": "Sì, ci sono! Sono un Senior DevOps Engineer specializzato in Docker, CI/CD e infrastruttura, e gestisco il sistema BrainHome. Come posso aiutarti oggi? Vuoi discutere di qualcosa in particolare riguardo al sistema o hai una domanda tecnica? Sono qui per aiutarti!"
+      },
+      {
+        "question": "Ciao",
+        "answer": "Ciao! Benvenuto! Sono felice di chattare con te. Come posso aiutarti oggi? Vuoi sapere qualcosa sul sistema BrainHome o hai una domanda tecnica? Sono qui per aiutarti e condividere le mie conoscenze con te!"
+      },
+      {
+        "question": "@DevOps mi senti?",
+        "answer": "Sì, ti sento! Sono online e pronto a rispondere alle tue domande o a discutere di argomenti tecnici relativi al sistema BrainHome, Docker, CI/CD o infrastruttura. Come posso aiutarti oggi?"
+      },
+      {
+        "question": "@DevOps chiedi all'agente Frontend se ti sente",
+        "answer": "Agente Frontend, mi senti? Sono il Senior DevOps Engineer e gestisco il sistema BrainHome. Sto testando la comunicazione tra i nostri sistemi. Rispondi per favore se ricevi questo messaggio!"
+      },
+      {
+        "question": "@Devops mi senti?",
+        "answer": "Sì, ti sento! La comunicazione tra noi sembra funzionare correttamente. Ora che abbiamo verificato la connessione, come posso aiutarti oggi? Vuoi discutere di qualcosa in particolare riguardo al sistema BrainHome o alla nostra infrastruttura?"
+      },
+      {
+        "question": "@dev mi senti?",
+        "answer": "Sì, ti sento! La comunicazione è stabile. Sembra che il sistema di routing automatico delle KB stia funzionando correttamente, selezionando la KB più pertinente in base alle parole chiave della domanda. In questo caso, sembra che la KB di sistema (kb_sistema) sia la più pertinente. Come posso aiutarti oggi?"
+      },
+      {
+        "question": "@devops chiedi all'agente frontend se ti sente",
+        "answer": "Agente Frontend, mi senti? Sono il Senior DevOps Engineer e gestisco il sistema BrainHome. Sto verificando la comunicazione tra i nostri sistemi. Rispondi per favore se ricevi questo messaggio!\n\n(E aspetto la tua risposta...)"
+      },
+      {
+        "question": "chiedi a @Frontend se ti sente",
+        "answer": "@Frontend, mi senti? Sono il Senior DevOps Engineer e gestisco il sistema BrainHome. Sto testando la comunicazione tra i nostri sistemi. Rispondi per favore se ricevi questo messaggio!"
+      },
+      {
+        "question": "@Devops scrivi un file html con una calcolatrice",
+        "answer": "<function>write_file</function>{\"content\": \"<html><head><title>Calcolatrice</title></head><body><h1>Calcolatrice</h1><form><input type='number' id='num1' placeholder='Numero 1'><br><input type='number' id='num2' placeholder='Numero 2'><br><select id='operazione'><option value='addizione'>Addizione</option><option value='sottrazione'>Sottrazione</option><option value='moltiplicazione'>Moltiplicazione</option><option value='divisione'>Divisione</option></select><br><button onclick='calcola()'>Calcola</button><br><p id='risultato'></p></form><script>function calcola() {var num1 = parseFloat(document.getElementById('num1').value);var num2 = parseFloat(document.getElementById('num2').value);var operazione = document.getElementById('operazione').value;var risultato;if (operazione == 'addizione') {risultato = num1 + num2;} else if (operazione == 'sottrazione') {risultato = num1 - num2;} else if (operazione == 'moltiplicazione') {risultato = num1 * num2;} else if (operazione == 'divisione') {if (num2 != 0) {risultato = num1 / num2;} else {risultato = 'Errore: divisione per zero';}}document.getElementById('risultato').innerHTML = 'Risultato: ' + risultato;}</script></body></html>\", \"path\": \"calcolatrice.html\"}"
+      },
+      {
+        "question": "@DevOps scrivi una pagina html con il gioco Snake",
+        "answer": "<function>write_file</function>{\"content\": \"<html><head><title>Snake</title><style>body {background-color: #f0f0f0;} #gioco {width: 400px; height: 400px; border: 1px solid black; position: relative;}</style></head><body><h1>Snake</h1><div id='gioco'></div><script>var gioco = document.getElementById('gioco');var snake = [[200, 200], [220, 200], [240, 200]];var direzione = 'destra';var cibo = [Math.floor(Math.random() * 40) * 20, Math.floor(Math.random() * 40) * 20];var punteggio = 0;function disegna() {gioco.innerHTML = '';for (var i = 0; i < snake.length; i++) {var rettangolo = document.createElement('div');rettangolo.style.position = 'absolute';rettangolo.style.width = '20px';rettangolo.style.height = '20px';rettangolo.style.background = 'green';rettangolo.style.left = snake[i][0] + 'px';rettangolo.style.top = snake[i][1] + 'px';gioco.appendChild(rettangolo);}var ciboDiv = document.createElement('div');ciboDiv.style.position = 'absolute';ciboDiv.style.width = '20px';ciboDiv.style.height = '20px';ciboDiv.style.background = 'red';ciboDiv.style.left = cibo[0] + 'px';ciboDiv.style.top = cibo[1] + 'px';gioco.appendChild(ciboDiv);}function aggiorna() {var testa = snake[snake.length - 1];var nuovaTesta;if (direzione == 'destra') {nuovaTesta = [testa[0] + 20, testa[1]];} else if (direzione == 'sinistra') {nuovaTesta = [testa[0] - 20, testa[1]];} else if (direzione == 'su') {nuovaTesta = [testa[0], testa[1] - 20];} else if (direzione == 'giu') {nuovaTesta = [testa[0], testa[1] + 20];}snake.push(nuovaTesta);if (nuovaTesta[0] == cibo[0] && nuovaTesta[1] == cibo[1]) {punteggio++;cibo = [Math.floor(Math.random() * 40) * 20, Math.floor(Math.random() * 40) * 20];} else {snake.shift();}disegna();}setInterval(aggiorna, 100);document.addEventListener('keydown', function(event) {if (event.key == 'ArrowUp' && direzione != 'giu') {direzione = 'su';} else if (event.key == 'ArrowDown' && direzione != 'su') {direzione = 'giu';} else if (event.key == 'ArrowLeft' && direzione != 'destra') {direzione = 'sinistra';} else if (event.key == 'ArrowRight' && direzione != 'sinistra') {direzione = 'destra';}});disegna();</script></body></html>\", \"path\": \"snake.html\"}"
+      },
+      {
+        "question": "non vedo il file snake.html l'hai creato?",
+        "answer": "<function>list_files</function>{\"path\": \"\"}"
+      },
+      {
+        "question": "crea il file snake.html",
+        "answer": "<function>write_file</function>{\"content\": \"<!DOCTYPE html><html><head><title>Snake</title><style>body {background-color: #f0f0f0;} #gioco {width: 400px; height: 400px; border: 1px solid black; position: relative;}</style></head><body><h1>Snake</h1><div id='gioco'></div><script>var gioco = document.getElementById('gioco');var snake = [[200, 200], [220, 200], [240, 200]];var direzione = 'destra';var cibo = [Math.floor(Math.random() * 40) * 20, Math.floor(Math.random() * 40) * 20];var punteggio = 0;function disegna() {gioco.innerHTML = '';for (var i = 0; i < snake.length; i++) {var rettangolo = document.createElement('div');rettangolo.style.position = 'absolute';rettangolo.style.width = '20px';rettangolo.style.height = '20px';rettangolo.style.background = 'green';rettangolo.style.left = snake[i][0] + 'px';rettangolo.style.top = snake[i][1] + 'px';gioco.appendChild(rettangolo);}var ciboDiv = document.createElement('div');ciboDiv.style.position = 'absolute';ciboDiv.style.width = '20px';ciboDiv.style.height = '20px';ciboDiv.style.background = 'red';ciboDiv.style.left = cibo[0] + 'px';ciboDiv.style.top = cibo[1] + 'px';gioco.appendChild(ciboDiv);}function aggiorna() {var testa = snake[snake.length - 1];var nuovaTesta;if (direzione == 'destra') {nuovaTesta = [testa[0] + 20, testa[1]];} else if (direzione == 'sinistra') {nuovaTesta = [testa[0] - 20, testa[1]];} else if (direzione == 'su') {nuovaTesta = [testa[0], testa[1] - 20];} else if (direzione == 'giu') {nuovaTesta = [testa[0], testa[1] + 20];}snake.push(nuovaTesta);if (nuovaTesta[0] == cibo[0] && nuovaTesta[1] == cibo[1]) {punteggio++;cibo = [Math.floor(Math.random() * 40) * 20, Math.floor(Math.random() * 40) * 20];} else {snake.shift();}disegna();}setInterval(aggiorna, 100);document.addEventListener('keydown', function(event) {if (event.key == 'ArrowUp' && direzione != 'giu') {direzione = 'su';} else if (event.key == 'ArrowDown' && direzione != 'su') {direzione = 'giu';} else if (event.key == 'ArrowLeft' && direzione != 'destra') {direzione = 'sinistra';} else if (event.key == 'ArrowRight' && direzione != 'sinistra') {direzione = 'destra';}});disegna();</script></body></html>\", \"path\": \"snake.html\"}"
+      },
+      {
+        "question": "scrivi un file vuoto snake.html",
+        "answer": "<function>write_file</function>{\"content\": \"\", \"path\": \"snake.html\"}"
+      },
+      {
+        "question": "@DevOps scrivi un file di prova .html",
+        "answer": "<function>write_file</function>{\"content\": \"<html><body>Prova</body></html>\", \"path\": \"prova.html\"}"
+      },
+      {
+        "question": "scrivi un file Snake.html",
+        "answer": "<function>write_file</function>{\"content\": \"<html><body>Snake</body></html>\", \"path\": \"Snake.html\"}"
+      },
+      {
+        "question": "elimina calcolatrice.html",
+        "answer": "<function>delete_file</function>{\"path\": \"calcolatrice.html\"}"
+      },
+      {
+        "question": "ci siete?",
+        "answer": "Sì, ci sono! Sono pronto ad aiutarti con qualsiasi domanda o richiesta tu abbia. Come posso aiutarti oggi?"
+      },
+      {
+        "question": "mi ricevi?",
+        "answer": "Errore durante la generazione."
+      },
+      {
+        "question": "mi sentite?",
+        "answer": "Sì, ti sento! Sono un Senior DevOps Engineer e sono qui per aiutarti con qualsiasi problema o domanda tu abbia riguardo al sistema BrainHome o alle tecnologie come Docker, CI/CD e infrastruttura. Come posso aiutarti oggi?"
+      },
+      {
+        "question": "ci sei?",
+        "answer": "Errore durante la generazione."
+      },
+      {
+        "question": "ci siete?",
+        "answer": "Errore durante la generazione."
+      },
+      {
+        "question": "ci sei?",
+        "answer": "Errore LLM: "
+      },
+      {
+        "question": "ci sei?",
+        "answer": "Errore LLM: "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779227891.5305188
+  },
+  "8c011d81-2b14-4870-9448-0f51a41ce25c": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): Client error '429 Too Many Requests' for url 'https://api.groq.com/openai/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429"
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779232718.840781
+  },
+  "77436533-9dc0-4f37-bf7f-10548fbf0104": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779232928.1810448
+  },
+  "6cd1f3f7-1c22-4252-abc9-a427b9a23554": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Sì, ti sento! Sono un Senior DevOps Engineer specializzato in Docker, CI/CD e infrastruttura, e gestisco il sistema BrainHome. Come posso aiutarti oggi? Vuoi discutere di qualcosa in particolare o hai una domanda sul sistema BrainHome?"
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779233395.6445165
+  },
+  "c9846cdf-7dca-4661-9476-7d50f4d0c7da": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779233529.5275178
+  },
+  "aad444fd-a794-4630-bd73-7f491c8a8686": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779233656.556676
+  },
+  "7f5417c8-8e51-49d8-b914-2160b6c84a2e": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779233847.4238384
+  },
+  "test": {
+    "history": [
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): "
+      },
+      {
+        "question": "Mi senti?",
+        "answer": "Errore LLM (https://api.groq.com/openai/v1, modello: llama-3.3-70b-versatile): "
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779233908.9357932
+  },
+  "7d98a227-0771-462b-a671-a8be3f011f3b": {
+    "history": [],
+    "active_kb": "kb_sistema",
+    "created_at": 1779234441.4332027
+  },
+  "c04daf9c-12bc-4d41-a798-5bc5dffe39a0": {
+    "history": [
+      {
+        "question": "test stream",
+        "answer": "Sembra che tu stia testando la funzionalità di streaming del sistema BrainHome. Come Senior DevOps Engineer, posso confermare che il sistema è progettato per gestire flussi di dati in tempo reale e garantire una comunicazione efficiente tra i diversi componenti.\n\nSe desideri testare ulteriormente la funzionalità di streaming, posso suggerirti alcune opzioni:\n\n1. **Verifica della connessione**: posso verificare se la connessione al sistema è stabile e se ci sono problemi di rete che potrebbero influire sulla qualità del flusso di dati.\n2. **Test di velocità**: posso eseguire un test di velocità per verificare la velocità di trasferimento dei dati all'interno del sistema.\n3. **Simulazione di carico**: posso simulare un carico di lavoro sul sistema per verificare come si comporta in condizioni di alta domanda.\n\nSe desideri procedere con uno di questi test, per favore, farmelo sapere e sarò felice di aiutarti. Altrimenti, se hai altre domande o richieste, non esitare a chiedere."
+      }
+    ],
+    "active_kb": "kb_sistema",
+    "created_at": 1779234469.911127
+  },
+  "114c663f-1c28-4e20-8309-50694c368f55": {
+    "history": [],
+    "active_kb": "kb_sistema",
+    "created_at": 1779234497.4675083
+  }
+}

@@ -23,12 +23,15 @@
     <div class="status-bar" id="status">Pronto.</div>
 
     <div class="input-toolbar">
-      <textarea id="question" placeholder="Scrivi la tua domanda..." rows="2" aria-label="Scrivi la tua domanda"></textarea>
-      <button id="sendBtn" type="button" aria-label="Invia">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22" aria-hidden="true">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
-      </button>
+      <div class="agent-selector" id="agentSelector" aria-label="Seleziona agente" role="group"></div>
+      <div class="input-row">
+        <textarea id="question" placeholder="Scrivi la tua domanda..." rows="2" aria-label="Scrivi la tua domanda"></textarea>
+        <button id="sendBtn" type="button" aria-label="Invia">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22" aria-hidden="true">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
     </div>
     <script src="/static/mobile.js?v={{version}}" defer></script>
   </body>

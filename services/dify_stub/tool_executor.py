@@ -17,10 +17,12 @@ Each schema maps 1:1 to an agent-tools HTTP endpoint:
   git_commit      → POST  /git-commit
 """
 
+import asyncio
 import json
 import logging
 import os
 from typing import Any
+import uuid
 
 import httpx
 
@@ -28,12 +30,72 @@ logger = logging.getLogger("tool_executor")
 
 AGENT_TOOLS_URL: str = os.getenv("AGENT_TOOLS_URL", "http://agent-tools:8001")
 AGENT_TOOLS_TOKEN: str = os.getenv("AGENT_TOOLS_TOKEN", "")
+AGENT_BROKER_URL: str = os.getenv("AGENT_BROKER_URL", "http://fastapi:80")
+AGENT_BROKER_TOKEN: str = os.getenv("AGENT_BROKER_TOKEN", "")
+AGENT_ID: str = os.getenv("AGENT_ID", "dify")
+AGENT_MESSAGE_CONTRACT_VERSION: str = os.getenv("AGENT_MESSAGE_CONTRACT_VERSION", "1.0")
+AGENT_MESSAGE_MAX_CHARS: int = int(os.getenv("AGENT_MESSAGE_MAX_CHARS", "4000"))
+AGENT_MESSAGE_REASON_MAX_CHARS: int = int(os.getenv("AGENT_MESSAGE_REASON_MAX_CHARS", "200"))
+AGENT_MESSAGE_CALL_DELAY: float = float(os.getenv("AGENT_MESSAGE_CALL_DELAY", "0.5"))
+
+MESSAGE_AGENT_TOOL_SCHEMA: dict = {
+    "type": "function",
+    "function": {
+        "name": "message_agent",
+        "description": (
+            "Invia un messaggio strutturato a un altro agente specializzato. "
+            "Usare quando un altro agente e piu pertinente o quando l'utente chiede esplicitamente di coinvolgerlo. "
+            "Supporta le modalita ask, delegate e notify."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "to_agent_id": {
+                    "type": "string",
+                    "description": "ID dell'agente destinatario presente nel registry. Esempio: 'agent-3'.",
+                },
+                "message": {
+                    "type": "string",
+                    "description": (
+                        "Messaggio operativo da inviare al destinatario. "
+                        f"Lunghezza massima: {AGENT_MESSAGE_MAX_CHARS} caratteri."
+                    ),
+                },
+                "reason": {
+                    "type": "string",
+                    "description": (
+                        "Motivazione breve della delega. "
+                        f"Lunghezza massima: {AGENT_MESSAGE_REASON_MAX_CHARS} caratteri."
+                    ),
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": ["ask", "delegate", "notify"],
+                    "description": "ask = chiedi un contributo, delegate = assegna un sottotask, notify = notifica senza risposta.",
+                    "default": "ask",
+                },
+                "await_response": {
+                    "type": "boolean",
+                    "description": "Se true attende la risposta del destinatario. Deve essere false per mode=notify.",
+                    "default": True,
+                },
+                "protocol_version": {
+                    "type": "string",
+                    "description": "Versione del contratto agente->agente.",
+                    "default": AGENT_MESSAGE_CONTRACT_VERSION,
+                },
+            },
+            "required": ["to_agent_id", "message"],
+        },
+    },
+}
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Tool schemas (OpenAI function-calling format)
 # ──────────────────────────────────────────────────────────────────────────────
 
 TOOL_SCHEMAS: list[dict] = [
+    MESSAGE_AGENT_TOOL_SCHEMA,
     {
         "type": "function",
         "function": {
@@ -279,6 +341,13 @@ def _auth_headers() -> dict:
     return {}
 
 
+def _broker_headers() -> dict:
+    headers = {"X-Agent-Id": AGENT_ID}
+    if AGENT_BROKER_TOKEN:
+        headers["Authorization"] = f"Bearer {AGENT_BROKER_TOKEN}"
+    return headers
+
+
 async def execute(tool_name: str, args: dict[str, Any]) -> str:
     """
     Dispatch a tool call to the agent-tools service.
@@ -298,8 +367,58 @@ async def execute(tool_name: str, args: dict[str, Any]) -> str:
 
 async def _dispatch(tool_name: str, args: dict[str, Any]) -> str:
     headers = _auth_headers()
+    broker_headers = _broker_headers()
 
     async with httpx.AsyncClient(timeout=60.0) as client:
+
+        # ── message_agent ───────────────────────────────────────────────────
+        if tool_name == "message_agent":
+            conversation_id = str(args.get("conversation_id") or uuid.uuid4())
+            trace_id = str(args.get("trace_id") or uuid.uuid4())
+            visited_agents = args.get("visited_agents") or [AGENT_ID]
+            if AGENT_ID not in visited_agents:
+                visited_agents = [AGENT_ID] + list(visited_agents)
+            envelope = {
+                "from_agent_id": AGENT_ID,
+                "to_agent_id": args["to_agent_id"],
+                "message": args["message"],
+                "reason": args.get("reason", ""),
+                "mode": args.get("mode", "ask"),
+                "await_response": args.get("await_response", True),
+                "protocol_version": args.get("protocol_version", AGENT_MESSAGE_CONTRACT_VERSION),
+                "trace_id": trace_id,
+                "conversation_id": conversation_id,
+                "hop_count": int(args.get("hop_count", 1)),
+                "max_hops": int(args.get("max_hops", 3)),
+                "visited_agents": visited_agents,
+            }
+            if AGENT_MESSAGE_CALL_DELAY > 0:
+                logger.info("Delaying agent-agent delegation by %.2fs", AGENT_MESSAGE_CALL_DELAY)
+                await asyncio.sleep(AGENT_MESSAGE_CALL_DELAY)
+            resp = await client.post(
+                f"{AGENT_BROKER_URL}/internal/agent-message",
+                json=envelope,
+                headers=broker_headers,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("status") == "error":
+                err = data.get("error") or {}
+                return (
+                    f"Delega fallita verso `{data.get('target_agent_id', args.get('to_agent_id', '?'))}`: "
+                    f"{err.get('code', 'unknown')} - {err.get('message', 'errore sconosciuto')}"
+                )
+            answer = str(data.get("answer", "")).strip()
+            if not answer:
+                return (
+                    f"Messaggio inviato a `{data.get('target_agent_id', args.get('to_agent_id', '?'))}` "
+                    f"(mode={data.get('mode', args.get('mode', 'ask'))}, latency={data.get('latency_ms', 0)} ms)."
+                )
+            return (
+                f"Risposta da `{data.get('target_agent_id', args.get('to_agent_id', '?'))}` "
+                f"(mode={data.get('mode', args.get('mode', 'ask'))}, latency={data.get('latency_ms', 0)} ms):\n"
+                f"{answer}"
+            )
 
         # ── write_file ──────────────────────────────────────────────────────
         if tool_name == "write_file":
